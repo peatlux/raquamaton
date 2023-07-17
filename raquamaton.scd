@@ -32,7 +32,7 @@ var buffers = bufferPaths.collect { |path| Buffer.read(s, path); };
 
 
 // SynthDef for playing a buffer with amplitude control
-SynthDef(\tabla, { |out = 0, bufnum, amp = 0.5,cutoff = 16e3, resonance = 1,speed = 1,onoff = 1|
+SynthDef(\tabla, { |out = 0, bufnum, amp = 0.1,cutoff = 16e3, resonance = 1,speed = 1,onoff = 1|
     var sig, filtered;
     sig = PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum)*speed, doneAction: Done.freeSelf);
 	//filtered = RLPF.ar(sig, cutoff, resonance);
@@ -45,64 +45,25 @@ SynthDef(\tabla, { |out = 0, bufnum, amp = 0.5,cutoff = 16e3, resonance = 1,spee
 
 a = Pdef(\rhythmPattern, Pbind(
     \instrument, \tabla,
-	\bufnum, Pn(Pdefn(\sampleholder),inf),
-	\dur, Pn(Pdefn(\durholder),inf),
-	\amp, Pn(Pdefn(\ampholder),inf)
+	\bufnum, Pseq(Array.fill(4, {arg i; ~bufferIndices[[1,0,1,2,0,3,1,1,0,1,0].scramble.normalizeSum.windex]} ),inf),
+	//Pseq([ 7, 1, 8, 9 ], inf)
+	\dur, Pseq([0.17,0.33],inf),
+	\amp, Pseq([0.1,0.2],inf)
 ));
 
-c = Pdefn(\durholder,{|arr| Pseq(arr.durarr)});
-b = Pdefn(\sampleholder, {|arr| Pseq(arr.samparr)});
-v = Pdefn(\ampholder,{|arr| Pseq(arr.amparr)});
-b.set(\samparr, Array.fill(16, {arg i; ~bufferIndices[[1,0,1,2,0,3,1,1,0,1,0].scramble.normalizeSum.windex]} ));
-c.set(\durarr,  Array.fill(16,{arg i; 0.2 + rrand(-0.2,0.2)}) );
-v.set(\amparr, Array.fill(16, {arg i; 0.4}));
 )
 
 a.play;
 a.stop;
-b.set(\samparr, Array.fill(16, {arg i; ~bufferIndices[[1,0,1,2,0,3,1,1,0,1,0].scramble.normalizeSum.windex]} ));
-//[10,8,5,5,5,5,5,7,5,5,5]
-c.set(\durarr,  Array.fill(16,{arg i; 0.2 + rrand(-0.2,0.2)}) );
-v.set(\amparr, Array.fill(16, {arg i; 0.2 + rrand(0,0.1)}));
 
-//Pdefn(\sampleholder).source.postcs; // ... and inspect the event pattern itself.
-
-Pbindef(\rhythmPattern, \amp, 0.3);
-Pbindef(\rhythmPattern, \bufnum, Pseq(Array.fill(16,{|i| ~bufferIndices[[1,0,1,2,0,3,1,1,0,1,0].scramble.normalizeSum.windex]} ),inf),\dur,Pseq(Array.fill(16,{arg i; 0.2 + rrand(-0.2,0.2)}),inf));
+//Pdef(\rhythmPattern).source.postcs; // ... and inspect the event pattern itself.
 
 
-d = Scale.bhairav;
-d.name
-d = Scale.chooseFromSelected({arg item; e.includesEqual(item.name);})
-
-e = ["Indian","Hindu","Athar Kurd","Karjighar","Purvi","Jiharkah","Bayati","Ahirbhairav","Bhairav","Nawa Athar"];
-
-
-d.name.class
-
-"Bhairav".class
-// SynthDef for playing a buffer with pitch control
-SynthDef(\shruti, { |out = 0, bufnum, pitch = 0, amp = 0.5, cutoff = 16e3, resonance = 1 |
-    var sig, freq, filtered;
-    freq = BufRateScale.kr(bufnum) * (2 ** (pitch / 12));
-    sig = PlayBuf.ar(1, bufnum, freq, doneAction: Done.freeSelf);
-	filtered = RLPF.ar(sig, cutoff, resonance);
-    sig = filtered * amp;
-    Out.ar(out, sig);
-}).add;
-
-
-Quarks.gui;
-Platform.userExtensionDir;
-
-Ndef(\sound).play;
-Ndef(\sound).fadeTime = 1;
-Ndef(\sound, { SinOsc.ar([600, 635], 0, SinOsc.kr(0.15).clip(-0.8,0.8) * 0.1) });
-Ndef(\sound, Pbind(\dur, 0.17, \freq, Pfunc({ rrand(300, 700) })) );
-
+(
+// ---------------------- S I T A R -----------------------------------------------------------------
 // SynthDef for 'sitar' using physical modeling of strings
 SynthDef(\stringSynth, {
-    |out = 0, freq = 709,octave = 1.0, amp = 0.5, pan = 0.0,chill=0.3, scl = 0.0, decay = -1.0, glide = 0.0|
+    |out = 0, freq = 709,octave = 0.0, amp = 0.5, pan = 0.0, scl = 0.0, decay = -1.0, glide = 0.0|
     var excitation, string, sound, signal, env;
 
     // Excitation source (e.g., an impulse)
@@ -114,7 +75,7 @@ SynthDef(\stringSynth, {
 
 	//Bhairavi tuning for 11 base strings in semitones relative to base freq
 
-	signal = Pluck.ar(WhiteNoise.ar(0.1),excitation , 0.01, SinOsc.kr(2,0.5pi,0.001,1)  * 709/freq*1409e-6*(2**((-1*Line.kr(0,glide * 0.2*octave,0.2) - (1.0*scl) - (octave*12))/12.0)) , 20+(decay*scl),
+	signal = Pluck.ar(WhiteNoise.ar(0.1),excitation , 0.01, SinOsc.kr(2,0.5pi,0.001,1) * 709.0/freq*1409e-6*(2**((-1*Line.kr(0,(glide+octave) * 0.2,0.2) - (1.0*scl) - (octave*12.0))/12.0)) , 20+(decay*scl),
 		coef:35e-3 - Line.kr(0,glide.abs * 17e-3,0.2),mul: amp); //35e-3
 	env = EnvGen.kr(Env.perc(0,10,1,10), doneAction: Done.freeSelf);
 
@@ -122,67 +83,54 @@ SynthDef(\stringSynth, {
 	Out.ar(0, Pan2.ar(signal, pan));
 }).add;
 
-Pbindef(\sitar, \glide, Pseq([0,1,0,0,-1,1,-1,0,0,0,0],inf));
-//[0,1,0,0,-1,1,-1,0,0,0,0].normalize *2 -1
 
-{SinOsc.kr(Line.kr(0,5,20),0.5pi,0.1,1)}.plot(20);
+b = Pdef(\sitar, Pbind(
+	'scl', Pseq([ 12.0, 0.0, 3.0, 1.0, 12.0, 0.0, 3.0, 1.0, 0.0, 3.0, 0.0, 8.0, 0.0, 3.0, 0.0, 8.0, 1.0, 0.0, 0.0, 4.0, 1.0, 0.0, 0.0, 4.0, 2.0, 0.0, 12.0, 0.0, 2.0, 0.0, 12.0, 0.0 ], inf),
+	'instrument', 'stringSynth',
+	'dur', (2.0 * Pseq([ 0.020833333333333, 0.052083333333333, 0.010416666666667, 0.10416666666667, 0.020833333333333, 0.052083333333333, 0.010416666666667, 0.10416666666667, 0.010416666666667, 0.0, 0.020833333333333, 0.0, 0.010416666666667, 0.0, 0.020833333333333, 0.0, 0.041666666666667, 0.020833333333333, 0.083333333333333, 0.010416666666667, 0.041666666666667, 0.020833333333333, 0.083333333333333, 0.010416666666667, 0.0, 0.083333333333333, 0.0, 0.041666666666667, 0.0, 0.083333333333333, 0.0, 0.041666666666667 ], inf)), 'decay', Pseq([ 1, 1, 2, 2, -1, -1, -3, -1 ], inf),
+	'freq', 709,
+	'amp', (0.6 * Pseq([ 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0 ], inf)),
+	'octave', Pseq([ 0.89999997615814, -0.10000000149012, 0.89999997615814, 0.89999997615814, 0.89999997615814, -0.10000000149012, 0.89999997615814, 0.89999997615814, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419 ], inf),
+	'glide', Pseq([ 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0 ], inf)));
 
-// Create an instance of the 'sitar' and play it
-a = Synth(\stringSynth,[\chill,1]);
-a.set(\decay,1); //>0: high tones take longer; <0: low tones take longer
-a.set(\chill, 1.0);
-a.set(\delay, Array.fill(11,{arg i; rrand(0.05,3.0)}));
-a.set(\freq, 440);
 
-//Ndef(\stringSynth, Pbind(\fac, -1, \chill, 0.7, \delay,Array.fill(11,{arg i; rrand(0.5,1.0)})));
-a.stop;
-n.stop;
-
-~s1 = Array.fill(16,{arg i; 0.2 + rrand(-0.2,0.2)});
-~s1 = [-999,0,1,6,-4,-1];
-~s1.floor
-
-FreqScope.new(800, 500, 0, server: s);
-[2.0,3.0,6.0][1..2].sum;
-
-n = Pdef(\sitar, Pbind(
-	\instrument, \stringSynth,
-	\scl, Pseq([-1.0,0.0,4.0,5.0,9.0,7.0,4.0,5.0,4.0,2.0,0.0],inf),
-	\dur, Pseq( Array.fill(16,{arg i; 0.2 + rrand(-0.2,0.2)}) ,inf),
-	\decay, Pseq([1,1,2,2,-1,-1,-3,-1],inf),
-	\freq, 709,
-	\amp, 0.5,
-));
-n.play;
-n.stop;
-n.set(\decay,-20); //>0: high tones take longer; <0: low tones take longer
-n.set(\chill, 1.0);
-n.set(\freq, 440);
-Pbindef(\sitar, \amp,0.5*Pseq([0,1,0,1,0,0,0,1,1],inf), \decay, Pseq([-10,-2,4.2,9,-5],inf) );
-
-(
-Pbindef(\sitar, \decay, Pseq([-12,-15,6,-9],inf),\scl, Pseq([-1.0,0.0,4.0,5.0,9.0,7.0,4.0,5.0,4.0,2.0,0.0].scramble,inf));
-Pbindef(\rhythmPattern, \bufnum, Pseq(Array.fill(16,{|i| ~bufferIndices[[1,0,1,2,0,3,1,1,0,1,0].scramble.normalizeSum.windex]} ),inf),\dur,Pseq(Array.fill(16,{arg i; 0.2 + rrand(-0.2,0.2)}),inf));
 )
 
-n.play(u);
-n.stop;
 
-m = Ppar([a,n],inf);
-m.play(u);
-m.stop;
+//Pdef(\sitar).source.postcs; // ... and inspect the event pattern itself.
 
-t = TempoClock.new;
-u = TempoClock.new;
-Pdef(\p04b).play(t);
-Pdef(\p04c).play(u);
-u.tempo = 1.0;
+//b.play;
+//b.stop;
 
+(
+// ----------------- S T A R T ----------------------------------------
+// STOP with Cmd + .
+
+
+// settings for the mix
 ~amp_tabla = 0.3;
 ~amp_sitar = 0.6;
-~unit_t = 4;
+~unit_t = 4.0; //also controlled via OSC
 
-// Set up OSC receivers
+u = TempoClock.new;
+u.tempo = 1.0;
+
+m = Ppar([a,b],inf);
+m.play(u);
+
+
+
+// --------------------------- O S C  -  R E C E I V E R S -------------------------------
+OSCdef(\rgtime, { |msg|
+    var time;
+	time = msg[1].asFloat;
+	"time for one loop [s]: ".post;
+	time.value.postln;
+	~unit_t = time.value;
+	~unit_t.postln;
+}, '/global/time');
+
+
 OSCdef(\rtonoff, { |msg|
     var onoff;
     onoff = msg[1..].asFloat;
@@ -261,24 +209,8 @@ OSCdef(\rsglide, { |msg|
 	Pbindef(\sitar, \glide , Pseq(glide, inf) );
 }, '/sitar/glide');
 
-n.play;
+)
 
 
-OSCdef(\receive3, { |msg|
-    var bufnum, amp, cutoff, resonance;
-    bufnum = msg[1].asInteger;  // Assuming the first argument is the buffer number
-    amp = msg[2].asFloat;  // Assuming the second argument is the amplitude
-    cutoff = msg[3].asFloat;  // Assuming the third argument is the cutoff frequency
-    resonance = msg[4].asFloat;  // Assuming the fourth argument is the resonance
-    Synth(\bufferFilterPlayer, [\bufnum, bufnum, \amp, amp, \cutoff, cutoff, \resonance, resonance]);
-}, '/playbuffer3');
 
-OSCdef(\receive4, { |msg|
-    // Add code for the fourth receiver here
-    // Adjust the number of arguments and their mappings to parameters as needed
-}, '/playbuffer4');
 
-OSCdef(\receive5, { |msg|
-    // Add code for the fifth receiver here
-    // Adjust the number of arguments and their mappings to parameters as needed
-}, '/playbuffer5');
