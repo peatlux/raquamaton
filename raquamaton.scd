@@ -4,7 +4,6 @@ s.boot;
 
 
 // Create buffer paths
-
 p = Platform.userHomeDir +/+ "/Documents/Studium/Master AKT/SS 23/Unconventional Computing/quantumlife/";
 
 (
@@ -20,7 +19,6 @@ var bufferPaths = [
 	(p++"tabla samples/tun.wav"),
 	(p++"tabla samples/break01.wav"),
 	(p++"tabla samples/break02.wav"),
-
 
 ];
 
@@ -42,7 +40,6 @@ SynthDef(\tabla, { |out = 0, bufnum, amp = 0.1,cutoff = 16e3, resonance = 1,spee
 
 //Synth(\tabla, [\bufnum,~bufferIndices[10.rand], \cutoff, 600, \resonance, 1, \speed, rrand(0.8,1.2)]);
 
-
 a = Pdef(\rhythmPattern, Pbind(
     \instrument, \tabla,
 	\bufnum, Pseq(Array.fill(4, {arg i; ~bufferIndices[[1,0,1,2,0,3,1,1,0,1,0].scramble.normalizeSum.windex]} ),inf),
@@ -53,6 +50,7 @@ a = Pdef(\rhythmPattern, Pbind(
 
 )
 
+//test
 a.play;
 a.stop;
 
@@ -80,9 +78,8 @@ SynthDef(\stringSynth, {
 	env = EnvGen.kr(Env.perc(0,10,1,10), doneAction: Done.freeSelf);
 
 
-	Out.ar(0, Pan2.ar(signal, pan));
+	Out.ar(0, Pan2.ar(signal*env, pan));
 }).add;
-
 
 b = Pdef(\sitar, Pbind(
 	'scl', Pseq([ 12.0, 0.0, 3.0, 1.0, 12.0, 0.0, 3.0, 1.0, 0.0, 3.0, 0.0, 8.0, 0.0, 3.0, 0.0, 8.0, 1.0, 0.0, 0.0, 4.0, 1.0, 0.0, 0.0, 4.0, 2.0, 0.0, 12.0, 0.0, 2.0, 0.0, 12.0, 0.0 ], inf),
@@ -93,18 +90,21 @@ b = Pdef(\sitar, Pbind(
 	'octave', Pseq([ 0.89999997615814, -0.10000000149012, 0.89999997615814, 0.89999997615814, 0.89999997615814, -0.10000000149012, 0.89999997615814, 0.89999997615814, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419, -1.1000000238419, -1.1000000238419, -0.10000000149012, -1.1000000238419 ], inf),
 	'glide', Pseq([ 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0 ], inf)));
 
-
 )
-
 
 //Pdef(\sitar).source.postcs; // ... and inspect the event pattern itself.
 
-//b.play;
-//b.stop;
+//test
+b.play;
+b.stop;
+
+//s.prepareForRecord(p++"out3.aiff",2);
+//s.stopRecording;
 
 (
 // ----------------- S T A R T ----------------------------------------
 // STOP with Cmd + .
+// RESTART if stopped by Cmd + .  and Start again.
 
 
 // settings for the mix
@@ -112,15 +112,23 @@ b = Pdef(\sitar, Pbind(
 ~amp_sitar = 0.6;
 ~unit_t = 4.0; //also controlled via OSC
 
-u = TempoClock.new;
-u.tempo = 1.0;
+//s.record;
+//~m = Ppar([a,b],inf);
+//~m.play();
 
-m = Ppar([a,b],inf);
-m.play(u);
 
 
 
 // --------------------------- O S C  -  R E C E I V E R S -------------------------------
+
+OSCdef(\startSynths, { |msg|
+	//var amp1, amp2;
+	"start".postln;
+	//s.record;
+	~m = Ppar([a,b],inf);
+	~m.play();
+}, '/global/start');
+
 OSCdef(\rgtime, { |msg|
     var time;
 	time = msg[1].asFloat;
@@ -150,7 +158,8 @@ OSCdef(\rtamp, { |msg|
 
 OSCdef(\rtsamp, { |msg|
     var samp;
-    samp = msg[1..].asFloat;
+    samp = msg[1..].asInteger;
+	samp = ~bufferIndices[samp];
 	samp.postln;
 	Pbindef(\rhythmPattern, \bufnum, Pseq(samp,inf));
 }, '/tabla/samparr');
@@ -208,6 +217,11 @@ OSCdef(\rsglide, { |msg|
 	glide.postln;
 	Pbindef(\sitar, \glide , Pseq(glide, inf) );
 }, '/sitar/glide');
+
+OSCdef(\freeServer, { |msg|
+	"stop".postln;
+	Server.freeAll;
+}, '/global/stop');
 
 )
 
