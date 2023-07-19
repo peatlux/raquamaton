@@ -6,6 +6,7 @@ s.boot;
 // Create buffer paths
 p = Platform.userHomeDir +/+ "/Documents/Studium/Master AKT/SS 23/Unconventional Computing/quantumlife/";
 
+
 (
 var bufferPaths = [
     (p++"tabla samples/dha.wav"),
@@ -97,7 +98,7 @@ b = Pdef(\sitar, Pbind(
 //test
 b.play;
 b.stop;
-
+a.stop;
 //s.prepareForRecord(p++"out3.aiff",2);
 //s.stopRecording;
 
@@ -113,21 +114,18 @@ b.stop;
 ~unit_t = 4.0; //also controlled via OSC
 
 //s.record;
-//~m = Ppar([a,b],inf);
-//~m.play();
-
-
+~m = Ppar([a,b],inf);
+~m.play();
 
 
 // --------------------------- O S C  -  R E C E I V E R S -------------------------------
 
-OSCdef(\startSynths, { |msg|
-	//var amp1, amp2;
-	"start".postln;
-	//s.record;
-	~m = Ppar([a,b],inf);
-	~m.play();
-}, '/global/start');
+OSCdef(\rgvol, { |msg|
+	var amp;
+	amp = msg[1];
+	Pbindef(\rhythmPattern, \amp,~amp_tabla*amp);
+	Pbindef(\sitar, \amp,~amp_sitar*amp);
+}, '/global/volume');
 
 OSCdef(\rgtime, { |msg|
     var time;
@@ -146,6 +144,8 @@ OSCdef(\rtonoff, { |msg|
 	onoff.postln;
 	Pbindef(\rhythmPattern, \onoff,  Pseq(onoff,inf));
 }, '/tabla/onoff');
+
+
 
 OSCdef(\rtamp, { |msg|
     var amp;
@@ -167,6 +167,7 @@ OSCdef(\rtsamp, { |msg|
 OSCdef(\rtdur, { |msg|
     var dur;
     dur = msg[1..].asFloat;
+	dur = dur + 0.001; //to prevent a total duration of 0 which stops the Pattern smhw
 	dur = dur.normalizeSum;
 	dur.postln;
 	Pbindef(\rhythmPattern, \dur, ~unit_t * Pseq(dur,inf));
@@ -218,10 +219,6 @@ OSCdef(\rsglide, { |msg|
 	Pbindef(\sitar, \glide , Pseq(glide, inf) );
 }, '/sitar/glide');
 
-OSCdef(\freeServer, { |msg|
-	"stop".postln;
-	Server.freeAll;
-}, '/global/stop');
 
 )
 
