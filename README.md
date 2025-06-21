@@ -2,6 +2,7 @@
 
 Cellular Automata are evolving with emulated quantum logic from qiskit.
 The encoded state of the grid is sent via osc to SuperCollider controlling synth variables to generate the audio.
+The sitar sounds are synthesized with a Karplus-Strong algorithm and the tabla sounds are sample-based. 
 
 A few minutes of the generative Stream:
 
